@@ -12,8 +12,19 @@
 | Общий модуль | Kotlin Multiplatform (`android` + `desktop`/JVM) |
 | Хранилище | JSON-документ через okio, атомарная запись |
 | Сборка | Gradle 9.x + AGP 9.5.x, JDK 21 |
+| Android | compileSdk 37, targetSdk 36, minSdk 26 |
 
 Версии зафиксированы в `gradle/libs.versions.toml`. Не обновляй их без запроса.
+
+Подводные камни AGP 9:
+
+- Kotlin в `androidApp` встроен в AGP. Плагин `org.jetbrains.kotlin.android`
+  подключать нельзя — сборка упадёт.
+- KMP-модуль с Android-таргетом использует только
+  `com.android.kotlin.multiplatform.library` (`kotlin { android { ... } }`),
+  а не `com.android.library` + `androidTarget()`.
+- Compose-зависимости `compose.runtime` / `compose.foundation` / `compose.material3`
+  в `shared` пока дают deprecation-warning — это ожидаемо, не «исправляй» наугад.
 
 ## Структура
 
@@ -47,7 +58,7 @@ docs/        # архитектура и принятые решения
 Требуется JDK 21. Если `JAVA_HOME` в текущей консоли не задан:
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-21.0.13.21-hotspot"
 ```
 
 Android SDK ожидается в `%LOCALAPPDATA%\Android\Sdk`; путь также можно прописать

@@ -81,8 +81,8 @@ class TaskStore(
 
     private fun mutate(transform: (TaskFlowData) -> TaskFlowData) {
         val next = transform(data)
-        data = next
         persist(next)
+        data = next
     }
 
     private fun load(): TaskFlowData {

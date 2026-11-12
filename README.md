@@ -35,7 +35,7 @@
 Если `JAVA_HOME` не задан:
 
 ```powershell
-$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-21.0.9.10-hotspot"
+$env:JAVA_HOME = "C:\Program Files\Microsoft\jdk-21.0.13.21-hotspot"
 ```
 
 ## Документация

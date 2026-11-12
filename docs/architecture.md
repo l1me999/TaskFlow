@@ -68,6 +68,7 @@ TaskFlowData(schemaVersion, projects, tasks)
 | --- | --- | --- |
 | Каталог данных | `%USERPROFILE%\.taskflow` | `filesDir` |
 | Время и дата | `java.time` | `java.time` (minSdk 26) |
+| compileSdk | — | 37 (требование Compose 1.12) |
 
 Java-код находится только в `androidMain`/`desktopMain`, поэтому `commonMain`
 остаётся переносимым (пригодится для iOS, если появится).

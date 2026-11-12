@@ -11,7 +11,7 @@ plugins {
 kotlin {
     android {
         namespace = "dev.amirg.taskflow.shared"
-        compileSdk = 36
+        compileSdk = 37
         minSdk = 26
 
         compilerOptions {
@@ -31,7 +31,7 @@ kotlin {
             implementation(compose.foundation)
             implementation(compose.material3)
             implementation(libs.kotlinx.serialization.json)
-            implementation(libs.okio)
+            api(libs.okio)
         }
 
         commonTest.dependencies {

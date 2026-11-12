@@ -117,12 +117,12 @@ class TaskStoreTest {
     }
 
     private fun withTempFile(block: (okio.Path) -> Unit) {
-        val dir = "build/tmp/taskflow-tests".toPath()
-        val path = "build/tmp/taskflow-tests/store-${Random.nextInt(1_000_000)}.json".toPath()
+        val dir = "build/tmp/taskflow-tests-${Random.nextInt(1_000_000)}".toPath()
+        val path = "$dir/store.json".toPath()
         try {
             block(path)
         } finally {
-            FileSystem.SYSTEM.delete(dir, mustExist = false)
+            runCatching { FileSystem.SYSTEM.delete(dir, mustExist = false) }
         }
     }
 }
