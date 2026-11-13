@@ -2,8 +2,10 @@ package dev.amirg.taskflow
 
 import dev.amirg.taskflow.data.TaskStore
 import dev.amirg.taskflow.model.TaskFlowData
+import dev.amirg.taskflow.model.TaskScope
+import dev.amirg.taskflow.model.activeTasks
+import dev.amirg.taskflow.model.completedTasks
 import dev.amirg.taskflow.model.isOverdue
-import dev.amirg.taskflow.model.sortedTasks
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path.Companion.toPath
@@ -18,12 +20,13 @@ class TaskOrderingTest {
     fun openTasksComeBeforeDoneOnes() {
         val data = TaskFlowData(
             tasks = listOf(
-                task(id = "done", done = true, dueDate = "2026-01-01"),
-                task(id = "open", done = false, dueDate = "2026-12-31"),
+                task(id = "done", done = true, createdAt = 1000),
+                task(id = "open", done = false, createdAt = 2000),
             ),
         )
 
-        assertEquals(listOf("open", "done"), data.sortedTasks().map { it.id })
+        assertEquals(listOf("open"), data.activeTasks(TaskScope.All, "2026-11-12").map { it.id })
+        assertEquals(listOf("done"), data.completedTasks(TaskScope.All, "2026-11-12").map { it.id })
     }
 
     @Test
@@ -36,7 +39,17 @@ class TaskOrderingTest {
             ),
         )
 
-        assertEquals(listOf("sooner", "later", "no-date"), data.sortedTasks().map { it.id })
+        // "Планируемое" показывает только задачи со сроком, сортировка по дате
+        assertEquals(
+            listOf("sooner", "later"),
+            data.activeTasks(TaskScope.Planned, "2026-11-12").map { it.id },
+        )
+
+        // "Все" показывает все открытые, без срока — в конце
+        assertEquals(
+            listOf("sooner", "later", "no-date"),
+            data.activeTasks(TaskScope.All, "2026-11-12").map { it.id },
+        )
     }
 
     @Test
@@ -54,11 +67,13 @@ class TaskOrderingTest {
         id: String,
         dueDate: String? = null,
         done: Boolean = false,
+        createdAt: Long = 0,
     ) = dev.amirg.taskflow.model.Task(
         id = id,
         title = id,
         dueDate = dueDate,
         done = done,
+        createdAt = createdAt,
     )
 }
 

@@ -41,11 +41,16 @@ class TaskStore(
         return project
     }
 
+    /**
+     * Creates a task. Everything except [title] is optional on purpose: the quick
+     * input only asks for a name, the rest is filled in later in the details pane.
+     */
     fun addTask(
         title: String,
         projectId: String? = null,
         notes: String = "",
         dueDate: String? = null,
+        important: Boolean = false,
     ): Task {
         val timestamp = nowMillis()
         val task = Task(
@@ -54,6 +59,7 @@ class TaskStore(
             projectId = projectId,
             notes = notes.trim(),
             dueDate = dueDate?.trim()?.ifBlank { null },
+            important = important,
             createdAt = timestamp,
             updatedAt = timestamp,
         )
@@ -61,22 +67,48 @@ class TaskStore(
         return task
     }
 
-    fun toggleTask(id: String) {
+    /** Replaces the editable fields of [task]. The id and timestamps are preserved. */
+    fun updateTask(
+        task: Task,
+        title: String,
+        notes: String,
+        dueDate: String?,
+        projectId: String?,
+        important: Boolean,
+    ) {
+        val next = task.copy(
+            title = title.trim(),
+            notes = notes.trim(),
+            dueDate = dueDate?.trim()?.ifBlank { null },
+            projectId = projectId,
+            important = important,
+            updatedAt = nowMillis(),
+        )
         mutate { current ->
-            current.copy(
-                tasks = current.tasks.map { task ->
-                    if (task.id == id) {
-                        task.copy(done = !task.done, updatedAt = nowMillis())
-                    } else {
-                        task
-                    }
-                },
-            )
+            current.copy(tasks = current.tasks.map { if (it.id == next.id) next else it })
         }
+    }
+
+    fun toggleTask(id: String) {
+        mutateTask(id) { it.copy(done = !it.done) }
+    }
+
+    fun toggleImportant(id: String) {
+        mutateTask(id) { it.copy(important = !it.important) }
     }
 
     fun deleteTask(id: String) {
         mutate { current -> current.copy(tasks = current.tasks.filterNot { it.id == id }) }
+    }
+
+    private fun mutateTask(id: String, transform: (Task) -> Task) {
+        mutate { current ->
+            current.copy(
+                tasks = current.tasks.map { task ->
+                    if (task.id == id) transform(task).copy(updatedAt = nowMillis()) else task
+                },
+            )
+        }
     }
 
     private fun mutate(transform: (TaskFlowData) -> TaskFlowData) {
