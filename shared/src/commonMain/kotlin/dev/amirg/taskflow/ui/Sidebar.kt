@@ -101,7 +101,7 @@ fun Sidebar(
             view = view,
             scope = TaskScope.Planned,
             label = "Планируемое",
-            icon = "📅",
+            icon = "📆",
             count = data.openCount(TaskScope.Planned, today),
             onSelect = onSelect,
         )

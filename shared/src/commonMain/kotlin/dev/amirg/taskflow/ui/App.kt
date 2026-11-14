@@ -169,45 +169,63 @@ private fun DesktopLayout(
 
             VerticalSeparator()
 
-            Column(
-                Modifier
+            Scaffold(
+                modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
-            ) {
-                ScreenHeader(title = view.title(data), subtitle = view.subtitle(data, today))
-                HorizontalSeparator()
-
-                if (view is TaskView.Projects) {
-                    ProjectsScreen(
-                        modifier = Modifier.weight(1f),
-                        data = data,
-                        onOpenProject = { onSelectView(TaskView.Project(it)) },
-                        onNewProject = onNewProject,
-                    )
-                } else {
-                    TaskListContent(
-                        modifier = Modifier.weight(1f),
-                        data = data,
-                        view = view,
-                        today = today,
-                        onOpen = onOpenTask,
-                        onToggle = { store.toggleTask(it) },
-                        onToggleImportant = { store.toggleImportant(it) },
-                        onDelete = onDeleteTask,
-                    )
-                    HorizontalSeparator()
-                    QuickAddBar(
-                        today = today,
-                        onAttach = onAttachClick,
-                        onSubmit = { title, dueDate, important ->
-                            store.addTask(
-                                title = title,
-                                projectId = (view as? TaskView.Project)?.id,
-                                dueDate = dueDate,
-                                important = important,
+                containerColor = MaterialTheme.colorScheme.background,
+                topBar = {
+                    Column {
+                        ScreenHeader(title = view.title(data), subtitle = view.subtitle(data, today))
+                        HorizontalSeparator()
+                    }
+                },
+                bottomBar = {
+                    if (view !is TaskView.Projects) {
+                        Column {
+                            HorizontalSeparator()
+                            QuickAddBar(
+                                today = today,
+                                onAttach = onAttachClick,
+                                defaultDueDate = defaultDueDateFor(view, today),
+                                defaultImportant = defaultImportantFor(view),
+                                onSubmit = { title, dueDate, important ->
+                                    store.addTask(
+                                        title = title,
+                                        projectId = (view as? TaskView.Project)?.id,
+                                        dueDate = dueDate,
+                                        important = important,
+                                    )
+                                },
                             )
-                        },
-                    )
+                        }
+                    }
+                },
+            ) { innerPadding ->
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                ) {
+                    if (view is TaskView.Projects) {
+                        ProjectsScreen(
+                            modifier = Modifier.fillMaxSize(),
+                            data = data,
+                            onOpenProject = { onSelectView(TaskView.Project(it)) },
+                            onNewProject = onNewProject,
+                        )
+                    } else {
+                        TaskListContent(
+                            modifier = Modifier.fillMaxSize(),
+                            data = data,
+                            view = view,
+                            today = today,
+                            onOpen = onOpenTask,
+                            onToggle = { store.toggleTask(it) },
+                            onToggleImportant = { store.toggleImportant(it) },
+                            onDelete = onDeleteTask,
+                        )
+                    }
                 }
             }
 
@@ -270,6 +288,8 @@ private fun MobileLayout(
                 QuickAddBar(
                     today = today,
                     onAttach = onAttachClick,
+                    defaultDueDate = defaultDueDateFor(view, today),
+                    defaultImportant = defaultImportantFor(view),
                     onSubmit = { title, dueDate, important ->
                         store.addTask(
                             title = title,
@@ -374,7 +394,7 @@ private data class BottomDestination(
 private val BottomDestinations = listOf(
     BottomDestination(TaskView.Today, "Сегодня", "📅"),
     BottomDestination(TaskView.Important, "Важно", "★"),
-    BottomDestination(TaskView.Planned, "План", "📅"),
+    BottomDestination(TaskView.Planned, "План", "📆"),
     BottomDestination(TaskView.All, "Все", "📋"),
     BottomDestination(TaskView.Projects, "Проекты", "📁"),
 )

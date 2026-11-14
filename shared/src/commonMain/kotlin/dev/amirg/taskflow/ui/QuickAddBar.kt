@@ -58,11 +58,13 @@ import dev.amirg.taskflow.platform.isoDateFromEpochMillisUtc
 fun QuickAddBar(
     today: String,
     onAttach: () -> Unit,
+    defaultDueDate: String? = null,
+    defaultImportant: Boolean = false,
     onSubmit: (title: String, dueDate: String?, important: Boolean) -> Unit,
 ) {
     var title by remember { mutableStateOf("") }
-    var dueDate by remember { mutableStateOf<String?>(null) }
-    var important by remember { mutableStateOf(false) }
+    var dueDate by remember(defaultDueDate) { mutableStateOf(defaultDueDate) }
+    var important by remember(defaultImportant) { mutableStateOf(defaultImportant) }
     var dateMenuOpen by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -72,8 +74,8 @@ fun QuickAddBar(
         if (trimmed.isEmpty()) return
         onSubmit(trimmed, dueDate, important)
         title = ""
-        dueDate = null
-        important = false
+        dueDate = defaultDueDate
+        important = defaultImportant
         runCatching { focusRequester.requestFocus() }
     }
 

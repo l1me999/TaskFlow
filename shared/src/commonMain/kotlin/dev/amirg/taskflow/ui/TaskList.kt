@@ -34,7 +34,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -62,7 +61,7 @@ fun TaskListContent(
     var showCompleted by remember(view) { mutableStateOf(false) }
 
     if (active.isEmpty() && completed.isEmpty()) {
-        EmptyState(view)
+        EmptyState(view, modifier)
         return
     }
 
@@ -276,18 +275,18 @@ private fun CompletedHeader(count: Int, expanded: Boolean, onToggle: () -> Unit)
 }
 
 @Composable
-private fun EmptyState(view: TaskView) {
+private fun EmptyState(view: TaskView, modifier: Modifier = Modifier) {
     val (icon, title, hint) = when (view) {
         TaskView.Today -> Triple("📅", "На сегодня всё", "Задач со сроком на сегодня нет.")
         TaskView.Important -> Triple("★", "Нет важных задач", "Отметьте задачу звёздочкой, чтобы она появилась здесь.")
-        TaskView.Planned -> Triple("📅", "Нет задач со сроком", "Задайте срок выполнения, и задача попадёт сюда.")
+        TaskView.Planned -> Triple("📆", "Нет задач со сроком", "Задайте срок выполнения, и задача попадёт сюда.")
         TaskView.All -> Triple("📋", "Пока пусто", "Добавьте первую задачу в строке ниже.")
         is TaskView.Project -> Triple("📁", "В проекте пусто", "Добавьте задачу в строке ниже.")
         TaskView.Projects -> Triple("☑", "Проектов пока нет", "Создайте проект, чтобы группировать задачи.")
     }
 
     Column(
-        Modifier
+        modifier
             .fillMaxSize()
             .padding(32.dp),
         verticalArrangement = Arrangement.Center,

@@ -60,3 +60,16 @@ fun TaskView.subtitle(data: TaskFlowData, today: String): String = when (this) {
         "$count ${pluralRu(count, "задача", "задачи", "задач")}"
     }
 }
+
+/**
+ * A task added from a smart list should land in that list, otherwise it looks
+ * like the quick input silently ate it. "Сегодня" and "Планируемое" therefore
+ * default to today's date.
+ */
+internal fun defaultDueDateFor(view: TaskView, today: String): String? = when (view) {
+    TaskView.Today, TaskView.Planned -> today
+    TaskView.Important, TaskView.All, TaskView.Projects, is TaskView.Project -> null
+}
+
+/** Tasks added from "Важно" are important by default, matching Microsoft To Do. */
+internal fun defaultImportantFor(view: TaskView): Boolean = view == TaskView.Important

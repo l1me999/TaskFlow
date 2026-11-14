@@ -71,8 +71,10 @@ Android SDK ожидается в `%LOCALAPPDATA%\Android\Sdk`; путь так�
 | Windows | `%USERPROFILE%\.taskflow\taskflow.json` |
 | Android | `filesDir/taskflow.json` внутри приложения |
 
-Схема: `schemaVersion`, `projects[]`, `tasks[]`. Дедлайн хранится строкой ISO
-(`YYYY-MM-DD`), поэтому сортировка и сравнение — обычное сравнение строк.
+Схема: `schemaVersion` (сейчас `2`), `projects[]`, `tasks[]`. Дедлайн хранится
+строкой ISO (`YYYY-MM-DD`), поэтому сортировка и сравнение — обычное сравнение
+строк. Флаг «важно» — `important` в задаче; в файлах `schemaVersion = 1` поле
+отсутствует и читается как `false`.
 
 ## Соглашения
 
