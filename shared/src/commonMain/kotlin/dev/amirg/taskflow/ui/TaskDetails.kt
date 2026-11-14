@@ -58,9 +58,11 @@ fun TaskDetailsPane(
     data: TaskFlowData,
     today: String,
     onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
     onAttach: () -> Unit,
+    onNewProject: () -> Unit,
 ) {
     TaskDetailsForm(
         modifier = modifier,
@@ -68,9 +70,11 @@ fun TaskDetailsPane(
         projects = data.projects,
         today = today,
         onSave = onSave,
+        onToggleDone = onToggleDone,
         onDelete = onDelete,
         onClose = onClose,
         onAttach = onAttach,
+        onNewProject = onNewProject,
         isDialog = false,
     )
 }
@@ -81,9 +85,11 @@ fun TaskDetailsDialog(
     projects: List<Project>,
     today: String,
     onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
     onAttach: () -> Unit,
+    onNewProject: () -> Unit,
 ) {
     TaskDetailsForm(
         modifier = Modifier.fillMaxSize(),
@@ -91,9 +97,11 @@ fun TaskDetailsDialog(
         projects = projects,
         today = today,
         onSave = onSave,
+        onToggleDone = onToggleDone,
         onDelete = onDelete,
         onClose = onClose,
         onAttach = onAttach,
+        onNewProject = onNewProject,
         isDialog = true,
     )
 }
@@ -106,9 +114,11 @@ private fun TaskDetailsForm(
     projects: List<Project>,
     today: String,
     onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
     onAttach: () -> Unit,
+    onNewProject: () -> Unit,
     isDialog: Boolean,
 ) {
     var title by remember { mutableStateOf(task.title) }
@@ -126,9 +136,9 @@ private fun TaskDetailsForm(
             .background(MaterialTheme.colorScheme.surface),
     ) {
         if (isDialog) {
-            DialogHeader(title = task.title, onClose = onClose)
+            DialogHeader(title = title, onClose = onClose)
         } else {
-            PaneHeader(title = task.title)
+            PaneHeader(title = title)
         }
 
         HorizontalDivider(
@@ -164,7 +174,7 @@ private fun TaskDetailsForm(
             ) {
                 Checkbox(
                     checked = task.done,
-                    onCheckedChange = { },
+                    onCheckedChange = { onToggleDone() },
                     modifier = Modifier.size(40.dp),
                     colors = CheckboxDefaults.colors(
                         checkedColor = MaterialTheme.colorScheme.primary,
@@ -210,7 +220,7 @@ private fun TaskDetailsForm(
                 selectedId = projectId,
                 onChange = { projectId = it },
                 onMenu = { projectMenuOpen = true },
-                onNewProject = { /* handled by caller via onSave with existing project only */ },
+                onNewProject = onNewProject,
             )
 
             Spacer(Modifier.height(24.dp))
@@ -220,9 +230,10 @@ private fun TaskDetailsForm(
             TextField(
                 value = notes,
                 onValueChange = { notes = it },
-                label = { Text("Заметки") },
+                placeholder = { Text("Добавьте заметку") },
                 singleLine = false,
-                maxLines = 5,
+                minLines = 3,
+                maxLines = 6,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { /* focus stays */ }),
@@ -230,23 +241,25 @@ private fun TaskDetailsForm(
         }
 
         // Bottom bar
-        Box(
-            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 16.dp, vertical = 8.dp),
-            contentAlignment = Alignment.Center,
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(horizontalArrangement = Arrangement.SpaceBetween) {
-                IconButton(onClick = onDelete) {
-                    Text(
-                        text = "🗑",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.error,
-                            fontSize = 20.sp,
-                        ),
-                    )
-                }
-                Spacer(Modifier.size(4.dp))
+            IconButton(onClick = onDelete) {
+                Text(
+                    text = "🗑",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = MaterialTheme.colorScheme.error,
+                        fontSize = 20.sp,
+                    ),
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 TextButton(onClick = onClose) { Text("Отмена") }
-                Spacer(Modifier.size(4.dp))
                 TextButton(
                     onClick = {
                         onSave(title, notes, dueDate, projectId, important)
@@ -375,7 +388,11 @@ private fun DueDateChipRow(
         Text(
             text = formatDueDate(dueDate, today),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = if (dueDate < today) {
+                MaterialTheme.colorScheme.error
+            } else {
+                MaterialTheme.colorScheme.onSurface
+            },
         )
         Spacer(Modifier.weight(1f))
         Row(
@@ -417,16 +434,8 @@ private fun ProjectPickerRow(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.weight(1f))
-        Row(
-            Modifier.padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onMenu) { Text("Изменить") }
-            if (projects.isEmpty()) {
-                TextButton(onClick = onNewProject) { Text("+") }
-            }
-        }
+        TextButton(onClick = onMenu) { Text("Изменить") }
+        TextButton(onClick = onNewProject) { Text("Новый") }
     }
 }
 

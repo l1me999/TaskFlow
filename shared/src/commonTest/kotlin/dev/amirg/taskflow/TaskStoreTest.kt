@@ -117,6 +117,37 @@ class TaskStoreTest {
     }
 
     @Test
+    fun projectRenameIsPersistedAndBlankNamesAreIgnored() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val project = store.addProject("Работа")
+
+            store.updateProject(project.id, "  Учёба  ", "#C239B3")
+            store.updateProject(project.id, "   ", "#000000")
+
+            val saved = TaskStore(path).data.projects.single()
+            assertEquals("Учёба", saved.name)
+            assertEquals("#C239B3", saved.colorHex)
+        }
+    }
+
+    @Test
+    fun deletingAProjectKeepsItsTasksWithoutAProject() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val project = store.addProject("Работа")
+            val task = store.addTask(title = "Отчёт", projectId = project.id)
+
+            store.deleteProject(project.id)
+
+            val reopened = TaskStore(path)
+            assertTrue(reopened.data.projects.isEmpty())
+            assertEquals(task.id, reopened.data.tasks.single().id)
+            assertEquals(null, reopened.data.tasks.single().projectId)
+        }
+    }
+
+    @Test
     fun corruptFileIsBackedUpInsteadOfCrashing() {
         withTempFile { path ->
             FileSystem.SYSTEM.createDirectories(path.parent!!)

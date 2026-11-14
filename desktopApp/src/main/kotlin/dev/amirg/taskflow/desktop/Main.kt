@@ -1,5 +1,7 @@
 package dev.amirg.taskflow.desktop
 
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -16,6 +18,9 @@ fun main() {
         Window(
             onCloseRequest = ::exitApplication,
             title = "TaskFlow",
+            // Compose would otherwise draw its own logo in the title bar; the
+            // app is identified by the title alone.
+            icon = BitmapPainter(ImageBitmap(1, 1)),
             state = rememberWindowState(width = 1100.dp, height = 760.dp),
         ) {
             App(store)

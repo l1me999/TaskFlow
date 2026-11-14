@@ -19,12 +19,20 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,21 +65,6 @@ fun Sidebar(
             Modifier.padding(horizontal = 18.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                Modifier
-                    .size(26.dp)
-                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(7.dp)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = "✓",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 18.sp,
-                    ),
-                )
-            }
-            Spacer(Modifier.width(10.dp))
             Text(
                 text = "TaskFlow",
                 style = MaterialTheme.typography.titleLarge,
@@ -123,16 +116,30 @@ fun Sidebar(
         )
         Spacer(Modifier.height(10.dp))
 
+        // Clicking the section title opens the project list, which is the only
+        // place where projects can be renamed, recolored or deleted.
         Row(
             Modifier
                 .fillMaxWidth()
+                .clickable { onSelect(TaskView.Projects) }
+                .background(
+                    if (view == TaskView.Projects) {
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                    } else {
+                        Color.Transparent
+                    },
+                )
                 .padding(start = 18.dp, end = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = "Проекты",
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = if (view == TaskView.Projects) {
+                    MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onNewProject) {
@@ -292,6 +299,8 @@ fun ProjectsScreen(
     data: TaskFlowData,
     onOpenProject: (String) -> Unit,
     onNewProject: () -> Unit,
+    onEditProject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit,
 ) {
     Column(modifier.fillMaxSize()) {
         Row(
@@ -334,9 +343,13 @@ fun ProjectsScreen(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 items(data.projects, key = { it.id }) { project ->
-                    ProjectCard(project = project, count = data.openCountForProject(project.id)) {
-                        onOpenProject(project.id)
-                    }
+                    ProjectCard(
+                        project = project,
+                        count = data.openCountForProject(project.id),
+                        onClick = { onOpenProject(project.id) },
+                        onEdit = { onEditProject(project) },
+                        onDelete = { onDeleteProject(project) },
+                    )
                 }
             }
         }
@@ -344,7 +357,15 @@ fun ProjectsScreen(
 }
 
 @Composable
-private fun ProjectCard(project: Project, count: Int, onClick: () -> Unit) {
+private fun ProjectCard(
+    project: Project,
+    count: Int,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+
     Surface(
         color = MaterialTheme.colorScheme.surface,
         shape = MaterialTheme.shapes.medium,
@@ -355,7 +376,7 @@ private fun ProjectCard(project: Project, count: Int, onClick: () -> Unit) {
                 .clickable(onClick = onClick)
                 .fillMaxWidth()
                 .heightIn(min = 60.dp)
-                .padding(horizontal = 16.dp, vertical = 10.dp),
+                .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -372,9 +393,53 @@ private fun ProjectCard(project: Project, count: Int, onClick: () -> Unit) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Box {
+                IconButton(onClick = { menuOpen = true }) {
+                    Text(
+                        text = "⋮",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            fontSize = 21.sp,
+                        ),
+                    )
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Изменить") },
+                        leadingIcon = { Text("✎") },
+                        onClick = {
+                            menuOpen = false
+                            onEdit()
+                        },
+                    )
+                    HorizontalDivider()
+                    DropdownMenuItem(
+                        text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = { Text("🗑", color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            menuOpen = false
+                            onDelete()
+                        },
+                    )
+                }
+            }
         }
     }
 }
+
+/** Palette offered when a project is created or edited, in To Do-like tones. */
+val ProjectColors = listOf(
+    "#4F6BED", // blue
+    "#C239B3", // magenta
+    "#E3008C", // pink
+    "#D13438", // red
+    "#CA5010", // orange
+    "#986F0B", // ochre
+    "#498205", // green
+    "#00B7C3", // teal
+    "#486991", // steel
+    "#69797E", // grey
+)
 
 /** Turns `#RRGGBB` from the storage file into a color, falling back to the default. */
 fun parseProjectColor(hex: String): Color = runCatching {

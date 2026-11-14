@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import dev.amirg.taskflow.data.TaskStore
+import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.platform.todayIsoDate
 import kotlinx.coroutines.launch
@@ -51,6 +52,8 @@ private fun TaskFlowApp(store: TaskStore) {
     var openTaskId by remember { mutableStateOf<String?>(null) }
     var showNewProject by remember { mutableStateOf(false) }
     var deleteTaskId by remember { mutableStateOf<String?>(null) }
+    var editProjectId by remember { mutableStateOf<String?>(null) }
+    var deleteProjectId by remember { mutableStateOf<String?>(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
@@ -77,6 +80,8 @@ private fun TaskFlowApp(store: TaskStore) {
                 onNewProject = { showNewProject = true },
                 onDeleteTask = { deleteTaskId = it },
                 onAttachClick = onAttachClick,
+                onEditProject = { editProjectId = it.id },
+                onDeleteProject = { deleteProjectId = it.id },
             )
         } else {
             DesktopLayout(
@@ -90,6 +95,8 @@ private fun TaskFlowApp(store: TaskStore) {
                 onNewProject = { showNewProject = true },
                 onDeleteTask = { deleteTaskId = it },
                 onAttachClick = onAttachClick,
+                onEditProject = { editProjectId = it.id },
+                onDeleteProject = { deleteProjectId = it.id },
             )
         }
 
@@ -102,10 +109,13 @@ private fun TaskFlowApp(store: TaskStore) {
                     today = today,
                     onSave = { title, notes, dueDate, projectId, important ->
                         store.updateTask(openTask, title, notes, dueDate, projectId, important)
+                        openTaskId = null
                     },
+                    onToggleDone = { store.toggleTask(openTask.id) },
                     onDelete = { deleteTaskId = openTask.id },
                     onClose = { openTaskId = null },
                     onAttach = onAttachClick,
+                    onNewProject = { showNewProject = true },
                 )
             }
         }
@@ -133,6 +143,33 @@ private fun TaskFlowApp(store: TaskStore) {
             onDismiss = { deleteTaskId = null },
         )
     }
+
+    val projectToEdit: Project? = editProjectId?.let { id -> store.data.projects.firstOrNull { it.id == id } }
+    if (projectToEdit != null) {
+        EditProjectDialog(
+            project = projectToEdit,
+            onSave = { name, colorHex ->
+                store.updateProject(projectToEdit.id, name, colorHex)
+                editProjectId = null
+            },
+            onDismiss = { editProjectId = null },
+        )
+    }
+
+    val projectToDelete: Project? =
+        deleteProjectId?.let { id -> store.data.projects.firstOrNull { it.id == id } }
+    if (projectToDelete != null) {
+        ConfirmDeleteProjectDialog(
+            projectName = projectToDelete.name,
+            taskCount = store.data.tasks.count { it.projectId == projectToDelete.id },
+            onConfirm = {
+                store.deleteProject(projectToDelete.id)
+                if ((view as? TaskView.Project)?.id == projectToDelete.id) view = TaskView.All
+                deleteProjectId = null
+            },
+            onDismiss = { deleteProjectId = null },
+        )
+    }
 }
 
 @Composable
@@ -147,6 +184,8 @@ private fun DesktopLayout(
     onNewProject: () -> Unit,
     onDeleteTask: (String) -> Unit,
     onAttachClick: () -> Unit,
+    onEditProject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit,
 ) {
     val data = store.data
 
@@ -213,6 +252,8 @@ private fun DesktopLayout(
                             data = data,
                             onOpenProject = { onSelectView(TaskView.Project(it)) },
                             onNewProject = onNewProject,
+                            onEditProject = onEditProject,
+                            onDeleteProject = onDeleteProject,
                         )
                     } else {
                         TaskListContent(
@@ -241,9 +282,11 @@ private fun DesktopLayout(
                     onSave = { title, notes, dueDate, projectId, important ->
                         store.updateTask(openTask, title, notes, dueDate, projectId, important)
                     },
+                    onToggleDone = { store.toggleTask(openTask.id) },
                     onDelete = { onDeleteTask(openTask.id) },
                     onClose = { onOpenTask(null) },
                     onAttach = onAttachClick,
+                    onNewProject = onNewProject,
                 )
             }
         }
@@ -269,6 +312,8 @@ private fun MobileLayout(
     onNewProject: () -> Unit,
     onDeleteTask: (String) -> Unit,
     onAttachClick: () -> Unit,
+    onEditProject: (Project) -> Unit,
+    onDeleteProject: (Project) -> Unit,
 ) {
     val data = store.data
     val showBack = view is TaskView.Project
@@ -315,6 +360,8 @@ private fun MobileLayout(
                     data = data,
                     onOpenProject = { onSelectView(TaskView.Project(it)) },
                     onNewProject = onNewProject,
+                    onEditProject = onEditProject,
+                    onDeleteProject = onDeleteProject,
                 )
             } else {
                 TaskListContent(

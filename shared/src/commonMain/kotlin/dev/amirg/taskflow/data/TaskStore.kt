@@ -41,6 +41,35 @@ class TaskStore(
         return project
     }
 
+    /** Renames [id] and recolors it. A blank name is ignored: a project always has one. */
+    fun updateProject(id: String, name: String, colorHex: String) {
+        val trimmed = name.trim()
+        if (trimmed.isEmpty()) return
+        mutate { current ->
+            current.copy(
+                projects = current.projects.map { project ->
+                    if (project.id == id) project.copy(name = trimmed, colorHex = colorHex) else project
+                },
+            )
+        }
+    }
+
+    /**
+     * Removes a project without touching its tasks: they stay in "Все задачи"
+     * with no project. Deleting work the user wrote is never a side effect of
+     * deleting a folder-like object.
+     */
+    fun deleteProject(id: String) {
+        mutate { current ->
+            current.copy(
+                projects = current.projects.filterNot { it.id == id },
+                tasks = current.tasks.map { task ->
+                    if (task.projectId == id) task.copy(projectId = null, updatedAt = nowMillis()) else task
+                },
+            )
+        }
+    }
+
     /**
      * Creates a task. Everything except [title] is optional on purpose: the quick
      * input only asks for a name, the rest is filled in later in the details pane.

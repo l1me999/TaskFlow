@@ -159,8 +159,13 @@ private fun TaskRow(
             )
 
             val dateText = task.dueDate?.let { formatDueDate(it, today) }
-            val meta = listOfNotNull(project?.name, dateText).joinToString(" · ")
-            if (meta.isNotEmpty()) {
+            val dateColor = when {
+                task.done -> MaterialTheme.colorScheme.onSurfaceVariant
+                overdue -> MaterialTheme.colorScheme.error
+                task.dueDate == today -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
+            if (project != null || dateText != null) {
                 Row(
                     Modifier.padding(top = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -172,19 +177,32 @@ private fun TaskRow(
                                 .background(parseProjectColor(project.colorHex), CircleShape),
                         )
                         Spacer(Modifier.width(6.dp))
+                        Text(
+                            text = project.name,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
                     }
-                    Text(
-                        text = meta,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = when {
-                            task.done -> MaterialTheme.colorScheme.onSurfaceVariant
-                            overdue -> MaterialTheme.colorScheme.error
-                            task.dueDate == today -> MaterialTheme.colorScheme.primary
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    if (project != null && dateText != null) {
+                        Text(
+                            text = " · ",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    // Only the date turns red when overdue: the project name stays
+                    // neutral, otherwise the whole row looks like an error.
+                    if (dateText != null) {
+                        Text(
+                            text = dateText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = dateColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }
