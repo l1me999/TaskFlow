@@ -1,6 +1,7 @@
 package dev.amirg.taskflow
 
 import dev.amirg.taskflow.data.TaskStore
+import dev.amirg.taskflow.model.RepeatRule
 import dev.amirg.taskflow.model.TaskFlowData
 import dev.amirg.taskflow.model.TaskScope
 import dev.amirg.taskflow.model.activeTasks
@@ -113,6 +114,92 @@ class TaskStoreTest {
 
             store.deleteTask(task.id)
             assertTrue(TaskStore(path).data.tasks.isEmpty())
+        }
+    }
+
+    @Test
+    fun completingARepeatingTaskAddsTheNextOccurrence() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val project = store.addProject("Работа")
+            val task = store.addTask(
+                title = "Отчёт",
+                projectId = project.id,
+                notes = "до вечера",
+                dueDate = "2026-11-10",
+                important = true,
+                repeatRule = RepeatRule.Daily,
+            )
+
+            store.toggleTask(task.id, today = "2026-11-10")
+
+            val reopened = TaskStore(path)
+            val closed = reopened.data.tasks.first { it.id == task.id }
+            val next = reopened.data.tasks.first { it.id != task.id }
+            assertTrue(closed.done)
+            assertFalse(next.done)
+            assertEquals("2026-11-11", next.dueDate)
+            assertEquals("Отчёт", next.title)
+            assertEquals(project.id, next.projectId)
+            assertEquals("до вечера", next.notes)
+            assertTrue(next.important)
+            assertEquals(RepeatRule.Daily, next.repeatRule)
+        }
+    }
+
+    @Test
+    fun completingANonRepeatingTaskAddsNothing() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val task = store.addTask(title = "Позвонить", dueDate = "2026-11-14")
+
+            store.toggleTask(task.id, today = "2026-11-14")
+
+            assertEquals(1, store.data.tasks.size)
+            assertTrue(store.data.tasks.single().done)
+        }
+    }
+
+    @Test
+    fun reopeningACompletedRepeatingTaskDoesNotDuplicateIt() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val task = store.addTask(
+                title = "Зарядка",
+                dueDate = "2026-11-14",
+                repeatRule = RepeatRule.Daily,
+            )
+            store.toggleTask(task.id, today = "2026-11-14")
+            assertEquals(2, store.data.tasks.size)
+
+            store.toggleTask(task.id, today = "2026-11-14")
+
+            assertEquals(2, store.data.tasks.size)
+            assertFalse(store.data.tasks.first { it.id == task.id }.done)
+        }
+    }
+
+    @Test
+    fun clearingTheDueDateAlsoClearsTheRepeatRule() {
+        withTempFile { path ->
+            val store = TaskStore(path)
+            val task = store.addTask(
+                title = "Уборка",
+                dueDate = "2026-11-14",
+                repeatRule = RepeatRule.Weekly,
+            )
+
+            store.updateTask(
+                task = task,
+                title = task.title,
+                notes = "",
+                dueDate = null,
+                projectId = null,
+                important = false,
+                repeatRule = RepeatRule.Weekly,
+            )
+
+            assertEquals(RepeatRule.None, store.data.tasks.single().repeatRule)
         }
     }
 

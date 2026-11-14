@@ -37,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import dev.amirg.taskflow.model.RepeatRule
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
 import dev.amirg.taskflow.model.activeTasks
@@ -164,7 +165,7 @@ private fun TaskRow(
                 task.dueDate == today -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             }
-            if (project != null || dateText != null) {
+            if (project != null || dateText != null || task.repeatRule != RepeatRule.None) {
                 Row(
                     Modifier.padding(top = 2.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -200,6 +201,14 @@ private fun TaskRow(
                             color = dateColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    if (task.repeatRule != RepeatRule.None) {
+                        Spacer(Modifier.width(6.dp))
+                        TfIcon(
+                            icon = TfIcon.Repeat,
+                            size = 14.dp,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }

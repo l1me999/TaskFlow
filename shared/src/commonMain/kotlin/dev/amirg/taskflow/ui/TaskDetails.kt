@@ -41,6 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import dev.amirg.taskflow.model.Project
+import dev.amirg.taskflow.model.RepeatRule
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
 
@@ -50,7 +51,7 @@ fun TaskDetailsPane(
     task: Task,
     data: TaskFlowData,
     today: String,
-    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean, repeatRule: RepeatRule) -> Unit,
     onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
@@ -77,7 +78,7 @@ fun TaskDetailsDialog(
     task: Task,
     projects: List<Project>,
     today: String,
-    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean, repeatRule: RepeatRule) -> Unit,
     onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
@@ -106,7 +107,7 @@ private fun TaskDetailsForm(
     task: Task,
     projects: List<Project>,
     today: String,
-    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean) -> Unit,
+    onSave: (title: String, notes: String, dueDate: String?, projectId: String?, important: Boolean, repeatRule: RepeatRule) -> Unit,
     onToggleDone: () -> Unit,
     onDelete: () -> Unit,
     onClose: () -> Unit,
@@ -119,8 +120,10 @@ private fun TaskDetailsForm(
     var dueDate by remember { mutableStateOf(task.dueDate) }
     var projectId by remember { mutableStateOf(task.projectId) }
     var important by remember { mutableStateOf(task.important) }
+    var repeatRule by remember { mutableStateOf(task.repeatRule) }
     var dateMenuOpen by remember { mutableStateOf(false) }
     var projectMenuOpen by remember { mutableStateOf(false) }
+    var repeatMenuOpen by remember { mutableStateOf(false) }
     var showDatePicker by remember { mutableStateOf(false) }
 
     Column(
@@ -199,7 +202,21 @@ private fun TaskDetailsForm(
                 today = today,
                 onChange = { dueDate = it },
                 onMenu = { dateMenuOpen = true },
-                onClear = { dueDate = null },
+                onClear = {
+                    dueDate = null
+                    // Without an anchor date the rule cannot fire.
+                    repeatRule = RepeatRule.None
+                },
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Section: повтор
+            SectionTitle("Повтор")
+            RepeatPickerRow(
+                rule = repeatRule,
+                enabled = dueDate != null,
+                onMenu = { repeatMenuOpen = true },
             )
 
             Spacer(Modifier.height(24.dp))
@@ -251,7 +268,7 @@ private fun TaskDetailsForm(
                 TextButton(onClick = onClose) { Text("Отмена") }
                 TextButton(
                     onClick = {
-                        onSave(title, notes, dueDate, projectId, important)
+                        onSave(title, notes, dueDate, projectId, important, repeatRule)
                     },
                     enabled = title.isNotBlank(),
                 ) {
@@ -278,6 +295,13 @@ private fun TaskDetailsForm(
             selectedId = projectId,
             onDismiss = { projectMenuOpen = false },
             onPick = { projectId = it },
+        )
+
+        RepeatDropdown(
+            expanded = repeatMenuOpen,
+            selected = repeatRule,
+            onDismiss = { repeatMenuOpen = false },
+            onPick = { repeatRule = it },
         )
 
         if (showDatePicker) {
@@ -391,6 +415,71 @@ private fun DueDateChipRow(
                     style = MaterialTheme.typography.labelMedium.copy(color = MaterialTheme.colorScheme.error),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun RepeatPickerRow(
+    rule: RepeatRule,
+    enabled: Boolean,
+    onMenu: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        TfIcon(
+            icon = TfIcon.Repeat,
+            size = 20.dp,
+            tint = if (rule != RepeatRule.None) {
+                MaterialTheme.colorScheme.primary
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = if (enabled) rule.label() else "Сначала задайте срок",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (enabled) {
+                MaterialTheme.colorScheme.onSurface
+            } else {
+                MaterialTheme.colorScheme.onSurfaceVariant
+            },
+            modifier = Modifier.weight(1f),
+        )
+        if (enabled) {
+            TextButton(onClick = onMenu) { Text("Изменить") }
+        }
+    }
+}
+
+@Composable
+private fun RepeatDropdown(
+    expanded: Boolean,
+    selected: RepeatRule,
+    onDismiss: () -> Unit,
+    onPick: (RepeatRule) -> Unit,
+) {
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
+        RepeatRule.entries.forEach { rule ->
+            DropdownMenuItem(
+                text = { Text(rule.label()) },
+                leadingIcon = {
+                    if (rule == selected) {
+                        TfIcon(
+                            icon = TfIcon.Check,
+                            size = 16.dp,
+                            tint = MaterialTheme.colorScheme.primary,
+                        )
+                    }
+                },
+                onClick = {
+                    onPick(rule)
+                    onDismiss()
+                },
+            )
         }
     }
 }

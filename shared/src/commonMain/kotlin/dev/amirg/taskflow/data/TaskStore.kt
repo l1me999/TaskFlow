@@ -4,9 +4,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import dev.amirg.taskflow.model.Project
+import dev.amirg.taskflow.model.RepeatRule
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
+import dev.amirg.taskflow.model.nextOccurrence
 import dev.amirg.taskflow.platform.nowMillis
+import dev.amirg.taskflow.platform.todayIsoDate
 import kotlinx.serialization.json.Json
 import okio.FileSystem
 import okio.Path
@@ -80,6 +83,7 @@ class TaskStore(
         notes: String = "",
         dueDate: String? = null,
         important: Boolean = false,
+        repeatRule: RepeatRule = RepeatRule.None,
     ): Task {
         val timestamp = nowMillis()
         val task = Task(
@@ -89,6 +93,7 @@ class TaskStore(
             notes = notes.trim(),
             dueDate = dueDate?.trim()?.ifBlank { null },
             important = important,
+            repeatRule = repeatRule,
             createdAt = timestamp,
             updatedAt = timestamp,
         )
@@ -104,13 +109,18 @@ class TaskStore(
         dueDate: String?,
         projectId: String?,
         important: Boolean,
+        repeatRule: RepeatRule,
     ) {
+        // A repeat rule without a due date has no anchor, so it is dropped
+        // instead of silently doing nothing later.
+        val cleanDueDate = dueDate?.trim()?.ifBlank { null }
         val next = task.copy(
             title = title.trim(),
             notes = notes.trim(),
-            dueDate = dueDate?.trim()?.ifBlank { null },
+            dueDate = cleanDueDate,
             projectId = projectId,
             important = important,
+            repeatRule = if (cleanDueDate == null) RepeatRule.None else repeatRule,
             updatedAt = nowMillis(),
         )
         mutate { current ->
@@ -118,8 +128,44 @@ class TaskStore(
         }
     }
 
-    fun toggleTask(id: String) {
-        mutateTask(id) { it.copy(done = !it.done) }
+    /**
+     * Toggles `done`. Completing a recurring task also closes the current
+     * occurrence and adds the next one with the same text, project and star,
+     * so the completed entry stays as history.
+     */
+    fun toggleTask(id: String, today: String = todayIsoDate()) {
+        mutate { current ->
+            val task = current.tasks.firstOrNull { it.id == id } ?: return@mutate current
+            val timestamp = nowMillis()
+
+            if (!task.done && task.repeatRule != RepeatRule.None) {
+                val nextDate = task.repeatRule.nextOccurrence(task.dueDate, today)
+                val closed = task.copy(done = true, updatedAt = timestamp)
+                val next = nextDate?.let { date ->
+                    Task(
+                        id = newId("task"),
+                        title = task.title,
+                        projectId = task.projectId,
+                        notes = task.notes,
+                        dueDate = date,
+                        important = task.important,
+                        repeatRule = task.repeatRule,
+                        createdAt = timestamp,
+                        updatedAt = timestamp,
+                    )
+                }
+                current.copy(
+                    tasks = current.tasks.map { if (it.id == id) closed else it } +
+                        listOfNotNull(next),
+                )
+            } else {
+                current.copy(
+                    tasks = current.tasks.map {
+                        if (it.id == id) task.copy(done = !task.done, updatedAt = timestamp) else it
+                    },
+                )
+            }
+        }
     }
 
     fun toggleImportant(id: String) {

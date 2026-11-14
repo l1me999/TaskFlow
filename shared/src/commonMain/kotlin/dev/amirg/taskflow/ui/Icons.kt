@@ -40,6 +40,7 @@ enum class TfIcon {
     Attach,
     Send,
     Back,
+    Repeat,
     More,
     Expand,
     Collapse,
@@ -92,6 +93,15 @@ private fun DrawScope.drawTfIcon(icon: TfIcon, color: Color) {
             drawCircle(color, radius = 1.7f, center = Offset(12f, 5f))
             drawCircle(color, radius = 1.7f, center = Offset(12f, 12f))
             drawCircle(color, radius = 1.7f, center = Offset(12f, 19f))
+        }
+
+        TfIcon.Repeat -> {
+            drawLine(color, Offset(5f, 9f), Offset(19f, 9f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(19f, 9f), Offset(15.5f, 5.5f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(19f, 9f), Offset(15.5f, 12.5f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(19f, 15f), Offset(5f, 15f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(5f, 15f), Offset(8.5f, 11.5f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(5f, 15f), Offset(8.5f, 18.5f), stroke.width, StrokeCap.Round)
         }
 
         TfIcon.Expand -> {

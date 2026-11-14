@@ -20,6 +20,10 @@ data class Project(
  * is enough for ordering and "overdue" checks.
  *
  * [important] is the "starred" flag shown in the "Важно" list.
+ *
+ * [repeatRule] turns the task into a recurring one: completing it closes the
+ * current occurrence and creates the next one (see `TaskStore.toggleTask`).
+ * It only makes sense together with [dueDate].
  */
 @Serializable
 data class Task(
@@ -29,6 +33,7 @@ data class Task(
     val notes: String = "",
     val dueDate: String? = null,
     val important: Boolean = false,
+    val repeatRule: RepeatRule = RepeatRule.None,
     val done: Boolean = false,
     val createdAt: Long = 0L,
     val updatedAt: Long = 0L,

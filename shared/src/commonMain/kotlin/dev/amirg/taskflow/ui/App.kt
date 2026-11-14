@@ -107,8 +107,8 @@ private fun TaskFlowApp(store: TaskStore) {
                     task = openTask,
                     projects = store.data.projects,
                     today = today,
-                    onSave = { title, notes, dueDate, projectId, important ->
-                        store.updateTask(openTask, title, notes, dueDate, projectId, important)
+                    onSave = { title, notes, dueDate, projectId, important, repeatRule ->
+                        store.updateTask(openTask, title, notes, dueDate, projectId, important, repeatRule)
                         openTaskId = null
                     },
                     onToggleDone = { store.toggleTask(openTask.id) },
@@ -279,8 +279,8 @@ private fun DesktopLayout(
                     task = openTask,
                     data = data,
                     today = today,
-                    onSave = { title, notes, dueDate, projectId, important ->
-                        store.updateTask(openTask, title, notes, dueDate, projectId, important)
+                    onSave = { title, notes, dueDate, projectId, important, repeatRule ->
+                        store.updateTask(openTask, title, notes, dueDate, projectId, important, repeatRule)
                     },
                     onToggleDone = { store.toggleTask(openTask.id) },
                     onDelete = { onDeleteTask(openTask.id) },

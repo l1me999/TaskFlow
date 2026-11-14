@@ -6,12 +6,12 @@ import kotlinx.serialization.Serializable
  * Everything the app stores. Serialized to `taskflow.json`.
  *
  * [schemaVersion] exists so a future storage migration can detect old files.
- * Version 2 added the `important` flag to tasks; older files load unchanged
- * because every new field has a default.
+ * Version 2 added the `important` flag, version 3 the `repeatRule`. Older files
+ * load unchanged because every new field has a default.
  */
 @Serializable
 data class TaskFlowData(
-    val schemaVersion: Int = 2,
+    val schemaVersion: Int = 3,
     val projects: List<Project> = emptyList(),
     val tasks: List<Task> = emptyList(),
 ) {
