@@ -44,7 +44,6 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.amirg.taskflow.platform.epochMillisFromIsoDateUtc
 import dev.amirg.taskflow.platform.isoDateFromEpochMillisUtc
 
@@ -95,14 +94,14 @@ fun QuickAddBar(
                 ) {
                     if (dueDate != null) {
                         PropertyChip(
-                            icon = "📅",
+                            icon = TfIcon.Today,
                             label = formatDueDate(dueDate!!, today),
                             onClear = { dueDate = null },
                         )
                     }
                     if (important) {
                         PropertyChip(
-                            icon = "★",
+                            icon = TfIcon.StarFilled,
                             label = "Важно",
                             onClear = { important = false },
                         )
@@ -115,12 +114,10 @@ fun QuickAddBar(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "+",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 22.sp,
-                    ),
+                TfIcon(
+                    icon = TfIcon.Plus,
+                    size = 22.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.width(10.dp))
 
@@ -162,16 +159,14 @@ fun QuickAddBar(
 
                 Box {
                     IconButton(onClick = { dateMenuOpen = true }) {
-                        Text(
-                            text = "📅",
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = if (dueDate != null) {
-                                    MaterialTheme.colorScheme.primary
-                                } else {
-                                    MaterialTheme.colorScheme.onSurfaceVariant
-                                },
-                                fontSize = 21.sp,
-                            ),
+                        TfIcon(
+                            icon = TfIcon.Today,
+                            size = 21.dp,
+                            tint = if (dueDate != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
                         )
                     }
                     DueDateDropdown(
@@ -188,22 +183,18 @@ fun QuickAddBar(
                 }
 
                 IconButton(onClick = onAttach) {
-                    Text(
-                        text = "📎",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 21.sp,
-                        ),
+                    TfIcon(
+                        icon = TfIcon.Attach,
+                        size = 21.dp,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
                 IconButton(onClick = { important = !important }) {
-                    Text(
-                        text = if (important) "★" else "☆",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = if (important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 21.sp,
-                        ),
+                    TfIcon(
+                        icon = if (important) TfIcon.StarFilled else TfIcon.Star,
+                        size = 21.dp,
+                        tint = if (important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
 
@@ -215,10 +206,7 @@ fun QuickAddBar(
                     shape = CircleShape,
                     modifier = Modifier.size(42.dp),
                 ) {
-                    Text(
-                        text = "→",
-                        style = MaterialTheme.typography.bodyMedium.copy(fontSize = 20.sp),
-                    )
+                    TfIcon(icon = TfIcon.Send, size = 20.dp)
                 }
             }
         }
@@ -238,7 +226,7 @@ fun QuickAddBar(
 
 @Composable
 private fun PropertyChip(
-    icon: String,
+    icon: TfIcon,
     label: String,
     onClear: () -> Unit,
 ) {
@@ -250,22 +238,18 @@ private fun PropertyChip(
             Modifier.padding(start = 10.dp, end = 4.dp, top = 3.dp, bottom = 3.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = icon,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 15.sp,
-                ),
+            TfIcon(
+                icon = icon,
+                size = 15.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Spacer(Modifier.width(6.dp))
             Text(label, style = MaterialTheme.typography.bodySmall)
             IconButton(onClick = onClear, modifier = Modifier.size(24.dp)) {
-                Text(
-                    text = "✕",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 14.sp,
-                    ),
+                TfIcon(
+                    icon = TfIcon.Close,
+                    size = 14.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

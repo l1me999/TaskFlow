@@ -40,7 +40,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.TaskFlowData
 import dev.amirg.taskflow.model.TaskScope
@@ -78,7 +77,7 @@ fun Sidebar(
             view = view,
             scope = TaskScope.Today,
             label = "Сегодня",
-            icon = "📅",
+            icon = TfIcon.Today,
             count = data.openCount(TaskScope.Today, today),
             onSelect = onSelect,
         )
@@ -86,7 +85,7 @@ fun Sidebar(
             view = view,
             scope = TaskScope.Important,
             label = "Важно",
-            icon = "★",
+            icon = TfIcon.Star,
             count = data.openCount(TaskScope.Important, today),
             onSelect = onSelect,
         )
@@ -94,7 +93,7 @@ fun Sidebar(
             view = view,
             scope = TaskScope.Planned,
             label = "Планируемое",
-            icon = "📆",
+            icon = TfIcon.Planned,
             count = data.openCount(TaskScope.Planned, today),
             onSelect = onSelect,
         )
@@ -102,7 +101,7 @@ fun Sidebar(
             view = view,
             scope = TaskScope.All,
             label = "Все задачи",
-            icon = "📋",
+            icon = TfIcon.All,
             count = data.openCount(TaskScope.All, today),
             onSelect = onSelect,
         )
@@ -143,7 +142,7 @@ fun Sidebar(
                 modifier = Modifier.weight(1f),
             )
             TextButton(onClick = onNewProject) {
-                Text("+")
+                TfIcon(TfIcon.Plus, size = 18.dp, tint = MaterialTheme.colorScheme.primary)
             }
         }
 
@@ -178,11 +177,10 @@ fun Sidebar(
                             .padding(horizontal = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(
-                            "+",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.primary,
+                        TfIcon(
+                            icon = TfIcon.Plus,
                             modifier = Modifier.size(18.dp),
+                            tint = MaterialTheme.colorScheme.primary,
                         )
                         Spacer(Modifier.width(10.dp))
                         Text(
@@ -202,7 +200,7 @@ private fun SidebarSection(
     view: TaskView,
     scope: TaskScope,
     label: String,
-    icon: String,
+    icon: TfIcon,
     count: Int,
     onSelect: (TaskView) -> Unit,
 ) {
@@ -226,11 +224,10 @@ private fun SidebarSection(
             .padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = icon,
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+        TfIcon(
+            icon = icon,
             modifier = Modifier.size(20.dp),
+            tint = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.width(12.dp))
         Text(
@@ -309,7 +306,7 @@ fun ProjectsScreen(
                 .padding(horizontal = 24.dp, vertical = 8.dp),
         ) {
             FilledTonalButton(onClick = onNewProject) {
-                Text("+")
+                TfIcon(TfIcon.Plus, size = 18.dp)
                 Spacer(Modifier.width(8.dp))
                 Text("Новый проект")
             }
@@ -323,10 +320,10 @@ fun ProjectsScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = "📁",
-                    style = MaterialTheme.typography.displaySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                TfIcon(
+                    icon = TfIcon.Folder,
+                    size = 44.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text("Проектов пока нет", style = MaterialTheme.typography.titleMedium)
@@ -395,18 +392,16 @@ private fun ProjectCard(
             }
             Box {
                 IconButton(onClick = { menuOpen = true }) {
-                    Text(
-                        text = "⋮",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 21.sp,
-                        ),
+                    TfIcon(
+                        icon = TfIcon.More,
+                        size = 20.dp,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
                 DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                     DropdownMenuItem(
                         text = { Text("Изменить") },
-                        leadingIcon = { Text("✎") },
+                        leadingIcon = { TfIcon(TfIcon.Edit, size = 18.dp) },
                         onClick = {
                             menuOpen = false
                             onEdit()
@@ -415,7 +410,9 @@ private fun ProjectCard(
                     HorizontalDivider()
                     DropdownMenuItem(
                         text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = { Text("🗑", color = MaterialTheme.colorScheme.error) },
+                        leadingIcon = {
+                            TfIcon(TfIcon.Trash, size = 18.dp, tint = MaterialTheme.colorScheme.error)
+                        },
                         onClick = {
                             menuOpen = false
                             onDelete()

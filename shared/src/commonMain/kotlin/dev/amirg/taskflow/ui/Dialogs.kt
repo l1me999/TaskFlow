@@ -135,10 +135,10 @@ fun EditProjectDialog(
                             contentAlignment = Alignment.Center,
                         ) {
                             if (option == colorHex) {
-                                Text(
-                                    text = "✓",
-                                    color = Color.White,
-                                    style = MaterialTheme.typography.bodyMedium,
+                                TfIcon(
+                                    icon = TfIcon.Check,
+                                    size = 18.dp,
+                                    tint = Color.White,
                                 )
                             }
                         }

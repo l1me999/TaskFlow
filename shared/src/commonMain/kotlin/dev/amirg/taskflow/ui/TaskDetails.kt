@@ -1,7 +1,6 @@
 package dev.amirg.taskflow.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -30,8 +29,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,14 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
-import dev.amirg.taskflow.platform.epochMillisFromIsoDateUtc
-import dev.amirg.taskflow.platform.isoDateFromEpochMillisUtc
 
 @Composable
 fun TaskDetailsPane(
@@ -189,12 +182,10 @@ private fun TaskDetailsForm(
                 )
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { important = !important }) {
-                    Text(
-                        text = if (important) "★" else "☆",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = if (important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                            fontSize = 22.sp,
-                        ),
+                    TfIcon(
+                        icon = if (important) TfIcon.StarFilled else TfIcon.Star,
+                        size = 22.dp,
+                        tint = if (important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
@@ -250,12 +241,10 @@ private fun TaskDetailsForm(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onDelete) {
-                Text(
-                    text = "🗑",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 20.sp,
-                    ),
+                TfIcon(
+                    icon = TfIcon.Trash,
+                    size = 20.dp,
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -315,7 +304,7 @@ private fun DialogHeader(title: String, onClose: () -> Unit) {
         Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
         Spacer(Modifier.weight(1f))
         IconButton(onClick = onClose) {
-            Text("✕")
+            TfIcon(icon = TfIcon.Close, size = 20.dp)
         }
     }
 }
@@ -357,12 +346,10 @@ private fun DueDateChipRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             IconButton(onClick = onMenu) {
-                Text(
-                    text = "📅",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 20.sp,
-                    ),
+                TfIcon(
+                    icon = TfIcon.Today,
+                    size = 20.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Spacer(Modifier.width(8.dp))
@@ -377,12 +364,10 @@ private fun DueDateChipRow(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = "📅",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = MaterialTheme.colorScheme.primary,
-                fontSize = 20.sp,
-            ),
+        TfIcon(
+            icon = TfIcon.Today,
+            size = 20.dp,
+            tint = MaterialTheme.colorScheme.primary,
         )
         Spacer(Modifier.width(8.dp))
         Text(

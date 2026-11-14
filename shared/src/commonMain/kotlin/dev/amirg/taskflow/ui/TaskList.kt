@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
 import dev.amirg.taskflow.model.activeTasks
@@ -208,29 +207,25 @@ private fun TaskRow(
         }
 
         IconButton(onClick = onToggleImportant) {
-            Text(
-                if (task.important) "★" else "☆",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = if (task.important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontSize = 21.sp,
-                ),
+            TfIcon(
+                icon = if (task.important) TfIcon.StarFilled else TfIcon.Star,
+                size = 22.dp,
+                tint = if (task.important) ImportantColor else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
         Box {
             TextButton(onClick = { menuOpen = true }) {
-                Text(
-                    text = "⋮",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 21.sp,
-                    ),
+                TfIcon(
+                    icon = TfIcon.More,
+                    size = 20.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                 DropdownMenuItem(
                     text = { Text("Открыть") },
-                    leadingIcon = { Text("✎") },
+                    leadingIcon = { TfIcon(TfIcon.Edit, size = 18.dp) },
                     onClick = {
                         menuOpen = false
                         onOpen()
@@ -238,7 +233,7 @@ private fun TaskRow(
                 )
                 DropdownMenuItem(
                     text = { Text(if (task.important) "Убрать из важных" else "Важно") },
-                    leadingIcon = { Text("★") },
+                    leadingIcon = { TfIcon(TfIcon.Star, size = 18.dp) },
                     onClick = {
                         menuOpen = false
                         onToggleImportant()
@@ -248,10 +243,7 @@ private fun TaskRow(
                 DropdownMenuItem(
                     text = { Text("Удалить", color = MaterialTheme.colorScheme.error) },
                     leadingIcon = {
-                        Text(
-                            "🗑",
-                            color = MaterialTheme.colorScheme.error,
-                        )
+                        TfIcon(TfIcon.Trash, size = 18.dp, tint = MaterialTheme.colorScheme.error)
                     },
                     onClick = {
                         menuOpen = false
@@ -273,9 +265,10 @@ private fun CompletedHeader(count: Int, expanded: Boolean, onToggle: () -> Unit)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = if (expanded) "▼" else "▶",
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        TfIcon(
+            icon = if (expanded) TfIcon.Expand else TfIcon.Collapse,
+            size = 16.dp,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.width(8.dp))
         Text(
@@ -295,12 +288,12 @@ private fun CompletedHeader(count: Int, expanded: Boolean, onToggle: () -> Unit)
 @Composable
 private fun EmptyState(view: TaskView, modifier: Modifier = Modifier) {
     val (icon, title, hint) = when (view) {
-        TaskView.Today -> Triple("📅", "На сегодня всё", "Задач со сроком на сегодня нет.")
-        TaskView.Important -> Triple("★", "Нет важных задач", "Отметьте задачу звёздочкой, чтобы она появилась здесь.")
-        TaskView.Planned -> Triple("📆", "Нет задач со сроком", "Задайте срок выполнения, и задача попадёт сюда.")
-        TaskView.All -> Triple("📋", "Пока пусто", "Добавьте первую задачу в строке ниже.")
-        is TaskView.Project -> Triple("📁", "В проекте пусто", "Добавьте задачу в строке ниже.")
-        TaskView.Projects -> Triple("☑", "Проектов пока нет", "Создайте проект, чтобы группировать задачи.")
+        TaskView.Today -> Triple(TfIcon.Today, "На сегодня всё", "Задач со сроком на сегодня нет.")
+        TaskView.Important -> Triple(TfIcon.Star, "Нет важных задач", "Отметьте задачу звёздочкой, чтобы она появилась здесь.")
+        TaskView.Planned -> Triple(TfIcon.Planned, "Нет задач со сроком", "Задайте срок выполнения, и задача попадёт сюда.")
+        TaskView.All -> Triple(TfIcon.All, "Пока пусто", "Добавьте первую задачу в строке ниже.")
+        is TaskView.Project -> Triple(TfIcon.Folder, "В проекте пусто", "Добавьте задачу в строке ниже.")
+        TaskView.Projects -> Triple(TfIcon.Folder, "Проектов пока нет", "Создайте проект, чтобы группировать задачи.")
     }
 
     Column(
@@ -310,10 +303,10 @@ private fun EmptyState(view: TaskView, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = icon,
-            style = MaterialTheme.typography.displaySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        TfIcon(
+            icon = icon,
+            size = 48.dp,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Spacer(Modifier.height(14.dp))
         Text(title, style = MaterialTheme.typography.titleMedium)

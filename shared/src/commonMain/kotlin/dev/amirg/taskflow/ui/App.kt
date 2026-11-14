@@ -413,7 +413,7 @@ private fun MobileTopBar(
         ) {
             if (showBack) {
                 IconButton(onClick = onBack) {
-                    Text("←")
+                    TfIcon(icon = TfIcon.Back, size = 22.dp)
                 }
             }
             Column(
@@ -435,15 +435,15 @@ private fun MobileTopBar(
 private data class BottomDestination(
     val view: TaskView,
     val label: String,
-    val icon: String,
+    val icon: TfIcon,
 )
 
 private val BottomDestinations = listOf(
-    BottomDestination(TaskView.Today, "Сегодня", "📅"),
-    BottomDestination(TaskView.Important, "Важно", "★"),
-    BottomDestination(TaskView.Planned, "План", "📆"),
-    BottomDestination(TaskView.All, "Все", "📋"),
-    BottomDestination(TaskView.Projects, "Проекты", "📁"),
+    BottomDestination(TaskView.Today, "Сегодня", TfIcon.Today),
+    BottomDestination(TaskView.Important, "Важно", TfIcon.Star),
+    BottomDestination(TaskView.Planned, "План", TfIcon.Planned),
+    BottomDestination(TaskView.All, "Все", TfIcon.All),
+    BottomDestination(TaskView.Projects, "Проекты", TfIcon.Folder),
 )
 
 @Composable
@@ -458,7 +458,7 @@ private fun MobileNavigationBar(view: TaskView, onSelect: (TaskView) -> Unit) {
             NavigationBarItem(
                 selected = index == selectedIndex,
                 onClick = { onSelect(destination.view) },
-                icon = { Text(destination.icon) },
+                icon = { TfIcon(icon = destination.icon, size = 22.dp) },
                 label = { Text(destination.label, style = MaterialTheme.typography.labelSmall) },
             )
         }

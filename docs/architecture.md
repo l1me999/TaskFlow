@@ -16,7 +16,7 @@ shared/  (KMP: android + desktop)
 │  ├─ model/    Project, Task, TaskFlowData, TaskScope, запросы и сортировка
 │  ├─ data/     TaskStore — единственный владелец состояния и файла
 │  ├─ platform/ expect-функции: nowMillis(), todayIsoDate(), конвертация дат
-│  └─ ui/       App, Sidebar, TaskList, QuickAddBar, TaskDetails, Dialogs, Theme
+│  └─ ui/       App, Sidebar, TaskList, QuickAddBar, TaskDetails, Dialogs, Theme, Icons
 ├─ androidMain   actual-реализации на java.time
 ├─ desktopMain   actual-реализации на java.time
 └─ commonTest    тесты запросов, сортировки, хранилища и дефолтов быстрого ввода
@@ -137,4 +137,4 @@ Java-код находится только в `androidMain`/`desktopMain`, по
 | Compose в `shared` | UI пишется один раз; оболочки платформ остаются тонкими |
 | Без синхронизации в MVP | Сначала рабочее локальное приложение, потом обмен данными |
 | UI в духе Microsoft To Do | Привычная однострочная запись задачи и умные списки вместо диалога создания |
-| Символьные иконки (★, 📅, 📁) | `material-icons-extended` не кэширован, а сборка идёт офлайн; замена на векторные иконки — отдельная задача |
+| Собственный набор иконок на Canvas (`Icons.kt`) | `material-icons-extended` не кэширован, сборка идёт офлайн; Canvas-пути масштабируются, красятся темой и одинаковы на Windows и Android |
