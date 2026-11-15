@@ -49,6 +49,7 @@ enum class TfIcon {
     Close,
     Plus,
     Check,
+    Photo,
 }
 
 @Composable
@@ -130,6 +131,25 @@ private fun DrawScope.drawTfIcon(icon: TfIcon, color: Color) {
             drawLine(color, Offset(5f, 12.5f), Offset(10f, 17.5f), stroke.width, StrokeCap.Round)
             drawLine(color, Offset(10f, 17.5f), Offset(19f, 6.5f), stroke.width, StrokeCap.Round)
         }
+
+        TfIcon.Photo -> {
+            drawRoundRect(
+                color = color,
+                topLeft = Offset(3.5f, 5.5f),
+                size = Size(17f, 13.5f),
+                cornerRadius = CornerRadius(3f, 3f),
+                style = stroke,
+            )
+            drawCircle(color, radius = 1.5f, center = Offset(8.5f, 9.8f))
+            val hills = Path().apply {
+                moveTo(5f, 17.5f)
+                lineTo(10f, 12.4f)
+                lineTo(13.2f, 15.6f)
+                lineTo(15.3f, 13.5f)
+                lineTo(19f, 17.2f)
+            }
+            drawPath(hills, color, style = stroke)
+        }
     }
 }
 
@@ -199,17 +219,19 @@ private fun DrawScope.drawPencil(color: Color, stroke: Stroke) {
 
 private fun DrawScope.drawPaperclip(color: Color, stroke: Stroke) {
     // A rounded clip seen at a 45 degree angle is just two nested stadiums.
+    // Both are centred on the 24x24 grid: the rotation happens around the grid
+    // centre, so an off-centre shape would lean out of its button.
     rotate(degrees = -45f) {
         drawRoundRect(
             color = color,
-            topLeft = Offset(8.5f, 2.5f),
+            topLeft = Offset(8.5f, 3.75f),
             size = Size(7f, 16.5f),
             cornerRadius = CornerRadius(3.5f, 3.5f),
             style = stroke,
         )
         drawRoundRect(
             color = color,
-            topLeft = Offset(10f, 7.5f),
+            topLeft = Offset(10f, 7.75f),
             size = Size(4f, 8.5f),
             cornerRadius = CornerRadius(2f, 2f),
             style = stroke,

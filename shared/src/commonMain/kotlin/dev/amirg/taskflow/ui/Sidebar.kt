@@ -45,6 +45,7 @@ import dev.amirg.taskflow.model.TaskFlowData
 import dev.amirg.taskflow.model.TaskScope
 import dev.amirg.taskflow.model.openCount
 import dev.amirg.taskflow.model.openCountForProject
+import dev.amirg.taskflow.platform.BackgroundPicker
 
 @Composable
 fun Sidebar(
@@ -52,12 +53,15 @@ fun Sidebar(
     data: TaskFlowData,
     view: TaskView,
     today: String,
+    hasBackground: Boolean,
+    onChangeBackground: () -> Unit,
+    onRemoveBackground: () -> Unit,
     onSelect: (TaskView) -> Unit,
     onNewProject: () -> Unit,
 ) {
     Column(
         modifier
-            .background(MaterialTheme.colorScheme.surface)
+            .background(chromeColor(0.72f))
             .padding(top = 18.dp),
     ) {
         Row(
@@ -153,9 +157,12 @@ fun Sidebar(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = 18.dp, vertical = 6.dp),
             )
+            Spacer(Modifier.weight(1f))
         } else {
             LazyColumn(
-                Modifier.fillMaxSize(),
+                Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp),
             ) {
@@ -189,6 +196,55 @@ fun Sidebar(
                             color = MaterialTheme.colorScheme.primary,
                         )
                     }
+                }
+            }
+        }
+
+        if (BackgroundPicker.launch != null) {
+            BackgroundFooter(
+                hasBackground = hasBackground,
+                onChangeBackground = onChangeBackground,
+                onRemoveBackground = onRemoveBackground,
+            )
+        }
+    }
+}
+
+@Composable
+private fun BackgroundFooter(
+    hasBackground: Boolean,
+    onChangeBackground: () -> Unit,
+    onRemoveBackground: () -> Unit,
+) {
+    Column {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(MaterialTheme.colorScheme.outlineVariant),
+        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TextButton(onClick = onChangeBackground) {
+                TfIcon(
+                    icon = TfIcon.Photo,
+                    size = 18.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(if (hasBackground) "Сменить фон" else "Фон")
+            }
+            if (hasBackground) {
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = onRemoveBackground) {
+                    Text(
+                        text = "Убрать",
+                        style = MaterialTheme.typography.labelLarge.copy(color = MaterialTheme.colorScheme.error),
+                    )
                 }
             }
         }
@@ -364,7 +420,7 @@ private fun ProjectCard(
     var menuOpen by remember { mutableStateOf(false) }
 
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        color = chromeColor(0.55f),
         shape = MaterialTheme.shapes.medium,
         modifier = Modifier.fillMaxWidth(),
     ) {

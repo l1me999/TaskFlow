@@ -1,6 +1,7 @@
 package dev.amirg.taskflow.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,31 +15,38 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
-import androidx.compose.material3.DatePicker
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.RepeatRule
@@ -115,41 +123,74 @@ private fun TaskDetailsForm(
     onNewProject: () -> Unit,
     isDialog: Boolean,
 ) {
-    var title by remember { mutableStateOf(task.title) }
-    var notes by remember { mutableStateOf(task.notes) }
-    var dueDate by remember { mutableStateOf(task.dueDate) }
-    var projectId by remember { mutableStateOf(task.projectId) }
-    var important by remember { mutableStateOf(task.important) }
-    var repeatRule by remember { mutableStateOf(task.repeatRule) }
-    var dateMenuOpen by remember { mutableStateOf(false) }
-    var projectMenuOpen by remember { mutableStateOf(false) }
-    var repeatMenuOpen by remember { mutableStateOf(false) }
-    var showDatePicker by remember { mutableStateOf(false) }
+    // Keyed by task id: opening another task must not show the previous one's text.
+    val taskId = task.id
+    var title by remember(taskId) { mutableStateOf(task.title) }
+    var notes by remember(taskId) { mutableStateOf(task.notes) }
+    var dueDate by remember(taskId) { mutableStateOf(task.dueDate) }
+    var projectId by remember(taskId) { mutableStateOf(task.projectId) }
+    var important by remember(taskId) { mutableStateOf(task.important) }
+    var repeatRule by remember(taskId) { mutableStateOf(task.repeatRule) }
+    var dateMenuOpen by remember(taskId) { mutableStateOf(false) }
+    var projectMenuOpen by remember(taskId) { mutableStateOf(false) }
+    var repeatMenuOpen by remember(taskId) { mutableStateOf(false) }
+    var showDatePicker by remember(taskId) { mutableStateOf(false) }
+
+    // Edits are local until the panel closes; closing through the cross, Esc or
+    // "Готово" saves them, so there is no separate "Отмена" that could silently
+    // throw away typing. A blank title keeps the old one instead of failing.
+    fun saveAndClose() {
+        val finalTitle = title.trim().ifBlank { task.title }
+        val finalRepeat = if (dueDate == null) RepeatRule.None else repeatRule
+        val changed = finalTitle != task.title ||
+            notes != task.notes ||
+            dueDate != task.dueDate ||
+            projectId != task.projectId ||
+            important != task.important ||
+            finalRepeat != task.repeatRule
+        // Closing an untouched task must not bump updatedAt and reshuffle lists.
+        if (changed) onSave(finalTitle, notes, dueDate, projectId, important, finalRepeat)
+        onClose()
+    }
+
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(taskId) {
+        runCatching { focusRequester.requestFocus() }
+    }
 
     Column(
         modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(chromeColor(0.96f))
+            .focusRequester(focusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                val isEscape = event.key == Key.Escape
+                if (isEscape && event.type == KeyEventType.KeyDown) {
+                    saveAndClose()
+                    true
+                } else {
+                    false
+                }
+            },
     ) {
-        if (isDialog) {
-            DialogHeader(title = title, onClose = onClose)
-        } else {
-            PaneHeader(title = title)
-        }
+        DetailsHeader(
+            title = title.ifBlank { "Без названия" },
+            closeable = true,
+            onClose = ::saveAndClose,
+        )
 
         HorizontalDivider(
             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-            modifier = Modifier.padding(horizontal = 16.dp),
         )
 
         Column(
             Modifier
                 .weight(1f)
-                .fillMaxSize()
-                .padding(16.dp)
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
                 .verticalScroll(rememberScrollState()),
         ) {
-            // Title
             TextField(
                 value = title,
                 onValueChange = { title = it },
@@ -163,25 +204,21 @@ private fun TaskDetailsForm(
 
             Spacer(Modifier.height(20.dp))
 
-            // Done + star row
             Row(
                 Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Checkbox(
+                TaskCheckbox(
                     checked = task.done,
                     onCheckedChange = { onToggleDone() },
-                    modifier = Modifier.size(40.dp),
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = MaterialTheme.colorScheme.primary,
-                        uncheckedColor = MaterialTheme.colorScheme.outline,
-                    ),
+                    circleSize = 26.dp,
+                    touchSize = 44.dp,
                 )
-                Spacer(Modifier.width(12.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     text = if (task.done) "Завершено" else "Не завершено",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (task.done) DoneColor else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { important = !important }) {
@@ -193,67 +230,68 @@ private fun TaskDetailsForm(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // Section: срок выполнения
-            SectionTitle("Срок выполнения")
-            DueDateChipRow(
-                dueDate = dueDate,
-                today = today,
-                onChange = { dueDate = it },
-                onMenu = { dateMenuOpen = true },
-                onClear = {
-                    dueDate = null
-                    // Without an anchor date the rule cannot fire.
-                    repeatRule = RepeatRule.None
-                },
-            )
+            SectionCard {
+                SectionTitle("Срок выполнения")
+                DueDateChipRow(
+                    dueDate = dueDate,
+                    today = today,
+                    onMenu = { dateMenuOpen = true },
+                    onClear = {
+                        dueDate = null
+                        // Without an anchor date the rule cannot fire.
+                        repeatRule = RepeatRule.None
+                    },
+                )
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(Modifier.height(12.dp))
 
-            // Section: повтор
-            SectionTitle("Повтор")
-            RepeatPickerRow(
-                rule = repeatRule,
-                enabled = dueDate != null,
-                onMenu = { repeatMenuOpen = true },
-            )
+                SectionTitle("Повтор")
+                RepeatPickerRow(
+                    rule = repeatRule,
+                    enabled = dueDate != null,
+                    onMenu = { repeatMenuOpen = true },
+                )
 
-            Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(12.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+                Spacer(Modifier.height(12.dp))
 
-            // Section: проект
-            SectionTitle("Проект")
-            ProjectPickerRow(
-                projects = projects,
-                selectedId = projectId,
-                onChange = { projectId = it },
-                onMenu = { projectMenuOpen = true },
-                onNewProject = onNewProject,
-            )
+                SectionTitle("Проект")
+                ProjectPickerRow(
+                    projects = projects,
+                    selectedId = projectId,
+                    onMenu = { projectMenuOpen = true },
+                    onNewProject = onNewProject,
+                )
+            }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(20.dp))
 
-            // Section: заметки
             SectionTitle("Заметки")
             TextField(
                 value = notes,
                 onValueChange = { notes = it },
                 placeholder = { Text("Добавьте заметку") },
                 singleLine = false,
-                minLines = 3,
-                maxLines = 6,
+                minLines = 4,
+                maxLines = 8,
                 modifier = Modifier.fillMaxWidth(),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { /* focus stays */ }),
             )
         }
 
-        // Bottom bar
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f))
+
         Row(
             Modifier
                 .fillMaxWidth()
-                .heightIn(min = 56.dp)
-                .padding(horizontal = 8.dp),
+                .heightIn(min = 64.dp)
+                .padding(horizontal = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -265,14 +303,19 @@ private fun TaskDetailsForm(
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                TextButton(onClick = onClose) { Text("Отмена") }
-                TextButton(
-                    onClick = {
-                        onSave(title, notes, dueDate, projectId, important, repeatRule)
-                    },
+                if (!isDialog) {
+                    Text(
+                        text = "Esc — закрыть",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(12.dp))
+                }
+                FilledTonalButton(
+                    onClick = { saveAndClose() },
                     enabled = title.isNotBlank(),
                 ) {
-                    Text("Сохранить")
+                    Text("Готово")
                 }
             }
         }
@@ -282,7 +325,10 @@ private fun TaskDetailsForm(
             today = today,
             dueDate = dueDate,
             onDismiss = { dateMenuOpen = false },
-            onPick = { dueDate = it; dateMenuOpen = false },
+            onPick = {
+                dueDate = it
+                dateMenuOpen = false
+            },
             onCustomDate = {
                 dateMenuOpen = false
                 showDatePicker = true
@@ -318,31 +364,44 @@ private fun TaskDetailsForm(
 }
 
 @Composable
-private fun DialogHeader(title: String, onClose: () -> Unit) {
+private fun DetailsHeader(title: String, closeable: Boolean, onClose: () -> Unit) {
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(start = 20.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.weight(1f))
-        IconButton(onClick = onClose) {
-            TfIcon(icon = TfIcon.Close, size = 20.dp)
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
+        )
+        if (closeable) {
+            IconButton(onClick = onClose) {
+                TfIcon(
+                    icon = TfIcon.Close,
+                    size = 20.dp,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
 
+/** Rounded group for the "when / repeat / project" properties, To Do style. */
 @Composable
-private fun PaneHeader(title: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun SectionCard(content: @Composable () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.38f),
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier.fillMaxWidth(),
     ) {
-        Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
-        Spacer(Modifier.weight(1f))
+        Column(Modifier.padding(14.dp)) {
+            content()
+        }
     }
 }
 
@@ -352,7 +411,7 @@ private fun SectionTitle(text: String) {
         text = text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(bottom = 8.dp),
+        modifier = Modifier.padding(bottom = 6.dp),
     )
 }
 
@@ -360,30 +419,9 @@ private fun SectionTitle(text: String) {
 private fun DueDateChipRow(
     dueDate: String?,
     today: String,
-    onChange: (String?) -> Unit,
     onMenu: () -> Unit,
     onClear: () -> Unit,
 ) {
-    if (dueDate == null) {
-        Row(
-            Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            IconButton(onClick = onMenu) {
-                TfIcon(
-                    icon = TfIcon.Today,
-                    size = 20.dp,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Spacer(Modifier.width(8.dp))
-            Text("Нет срока", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = onMenu) { Text("Выбрать") }
-        }
-        return
-    }
-
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -391,24 +429,24 @@ private fun DueDateChipRow(
         TfIcon(
             icon = TfIcon.Today,
             size = 20.dp,
-            tint = MaterialTheme.colorScheme.primary,
-        )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = formatDueDate(dueDate, today),
-            style = MaterialTheme.typography.bodyMedium,
-            color = if (dueDate < today) {
-                MaterialTheme.colorScheme.error
+            tint = if (dueDate == null) {
+                MaterialTheme.colorScheme.onSurfaceVariant
             } else {
-                MaterialTheme.colorScheme.onSurface
+                MaterialTheme.colorScheme.primary
             },
         )
-        Spacer(Modifier.weight(1f))
-        Row(
-            Modifier.padding(vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onMenu) { Text("Изменить") }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = dueDate?.let { formatFullDate(it) } ?: "Нет срока",
+            style = MaterialTheme.typography.bodyMedium,
+            color = when {
+                dueDate == null -> MaterialTheme.colorScheme.onSurfaceVariant
+                dueDate < today -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurface
+            },
+            modifier = Modifier.weight(1f),
+        )
+        if (dueDate != null) {
             TextButton(onClick = onClear) {
                 Text(
                     "Убрать",
@@ -416,6 +454,7 @@ private fun DueDateChipRow(
                 )
             }
         }
+        TextButton(onClick = onMenu) { Text(if (dueDate == null) "Выбрать" else "Изменить") }
     }
 }
 
@@ -438,7 +477,7 @@ private fun RepeatPickerRow(
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(10.dp))
         Text(
             text = if (enabled) rule.label() else "Сначала задайте срок",
             style = MaterialTheme.typography.bodyMedium,
@@ -488,7 +527,6 @@ private fun RepeatDropdown(
 private fun ProjectPickerRow(
     projects: List<Project>,
     selectedId: String?,
-    onChange: (String?) -> Unit,
     onMenu: () -> Unit,
     onNewProject: () -> Unit,
 ) {
@@ -499,17 +537,17 @@ private fun ProjectPickerRow(
     ) {
         Box(
             Modifier
-                .size(8.dp)
+                .size(9.dp)
                 .background(parseProjectColor(selected?.colorHex ?: "#4F6BED"), CircleShape),
         )
-        Spacer(Modifier.width(8.dp))
+        Spacer(Modifier.width(10.dp))
         Text(
             text = selected?.name ?: "Без проекта",
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onMenu) { Text("Изменить") }
         TextButton(onClick = onNewProject) { Text("Новый") }
+        TextButton(onClick = onMenu) { Text("Изменить") }
     }
 }
 
@@ -524,7 +562,19 @@ private fun ProjectDropdown(
     DropdownMenu(expanded = expanded, onDismissRequest = onDismiss) {
         DropdownMenuItem(
             text = { Text("Без проекта") },
-            onClick = { onPick(null); onDismiss() },
+            leadingIcon = {
+                if (selectedId == null) {
+                    TfIcon(
+                        icon = TfIcon.Check,
+                        size = 16.dp,
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                }
+            },
+            onClick = {
+                onPick(null)
+                onDismiss()
+            },
         )
         HorizontalDivider()
         projects.forEach { project ->
@@ -533,16 +583,15 @@ private fun ProjectDropdown(
                 leadingIcon = {
                     Box(
                         Modifier
-                            .size(8.dp)
+                            .size(9.dp)
                             .background(parseProjectColor(project.colorHex), CircleShape),
                     )
                 },
-                onClick = { onPick(project.id); onDismiss() },
+                onClick = {
+                    onPick(project.id)
+                    onDismiss()
+                },
             )
         }
     }
 }
-
-@Composable
-private fun notesPlaceholder(notes: String): String =
-    if (notes.length > 80) "${notes.substring(0, 80)}…" else notes

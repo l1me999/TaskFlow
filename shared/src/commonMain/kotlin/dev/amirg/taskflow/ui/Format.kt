@@ -68,3 +68,6 @@ fun RepeatRule.label(): String = when (this) {
 
 /** Цвет звёздочки «Важно», используется в карточке задачи и быстром вводе. */
 internal val ImportantColor = Color(0xFFF2B53D)
+
+/** Зелёная заливка выполненной задачи — как галочка «сделано» в To Do. */
+internal val DoneColor = Color(0xFF2FA84F)

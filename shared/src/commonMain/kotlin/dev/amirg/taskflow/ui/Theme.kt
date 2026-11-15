@@ -1,6 +1,9 @@
 package dev.amirg.taskflow.ui
 
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -10,8 +13,13 @@ import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -76,22 +84,78 @@ private val AppShapes = Shapes(
     extraLarge = RoundedCornerShape(24.dp),
 )
 
+/** True while a user-chosen background image is shown behind the UI. */
+internal val LocalHasBackgroundImage = staticCompositionLocalOf { false }
+
 @Composable
-fun TaskFlowTheme(content: @Composable () -> Unit) {
-    val colorScheme = if (isSystemInDarkTheme()) DarkColors else LightColors
+fun TaskFlowTheme(
+    background: ImageBitmap? = null,
+    content: @Composable () -> Unit,
+) {
+    // A photo background always uses the dark palette: white text over a dimmed
+    // picture is readable, dark text on a light theme over the same picture is not.
+    val colorScheme = if (isSystemInDarkTheme() || background != null) DarkColors else LightColors
+
     MaterialTheme(
         colorScheme = colorScheme,
         typography = AppTypography,
         shapes = AppShapes,
     ) {
-        // A root Surface is what gives every Text a readable default color.
-        // Without it Compose falls back to black content color, which disappears
-        // on the dark background.
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = colorScheme.background,
-            contentColor = colorScheme.onBackground,
-            content = content,
-        )
+        CompositionLocalProvider(LocalHasBackgroundImage provides (background != null)) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(colorScheme.background),
+            ) {
+                if (background != null) {
+                    Image(
+                        bitmap = background,
+                        contentDescription = null,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop,
+                    )
+                    // Keeps the list text readable wherever the picture is bright.
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.62f)),
+                    )
+                    // The screen title has no panel of its own, so it gets its own
+                    // shade: bright photos would otherwise wash the header out.
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Black.copy(alpha = 0.45f),
+                                    0.22f to Color.Transparent,
+                                ),
+                            ),
+                    )
+                }
+                // A root Surface is what gives every Text a readable default color.
+                // Without it Compose falls back to black content color, which disappears
+                // on the dark background.
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = Color.Transparent,
+                    contentColor = colorScheme.onBackground,
+                    content = content,
+                )
+            }
+        }
     }
 }
+
+/**
+ * Tint for chrome that sits on top of the background (sidebar, input bar, details
+ * pane). A photo background needs to show through, so panels turn translucent;
+ * on a plain background they stay opaque, as before.
+ */
+@Composable
+internal fun chromeColor(alpha: Float = 0.80f): Color =
+    if (LocalHasBackgroundImage.current) {
+        MaterialTheme.colorScheme.surface.copy(alpha = alpha)
+    } else {
+        MaterialTheme.colorScheme.surface
+    }

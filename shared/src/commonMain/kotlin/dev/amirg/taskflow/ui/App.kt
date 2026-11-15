@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -31,22 +30,42 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import dev.amirg.taskflow.data.TaskStore
 import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.Task
+import dev.amirg.taskflow.platform.BackgroundPicker
+import dev.amirg.taskflow.platform.deleteBackgroundImage
+import dev.amirg.taskflow.platform.loadBackgroundImage
 import dev.amirg.taskflow.platform.todayIsoDate
 import kotlinx.coroutines.launch
 
 @Composable
-fun App(store: TaskStore) {
-    TaskFlowTheme {
-        TaskFlowApp(store)
+fun App(store: TaskStore, backgroundPath: String? = null) {
+    // Bumped after the picture is imported or removed, which re-decodes the file.
+    var backgroundVersion by remember { mutableStateOf(0) }
+    val background = remember(backgroundPath, backgroundVersion) {
+        backgroundPath?.let { loadBackgroundImage(it) }
+    }
+
+    TaskFlowTheme(background = background) {
+        TaskFlowApp(
+            store = store,
+            backgroundPath = backgroundPath,
+            hasBackground = background != null,
+            onBackgroundChanged = { backgroundVersion++ },
+        )
     }
 }
 
 @Composable
-private fun TaskFlowApp(store: TaskStore) {
+private fun TaskFlowApp(
+    store: TaskStore,
+    backgroundPath: String?,
+    hasBackground: Boolean,
+    onBackgroundChanged: () -> Unit,
+) {
     val today = remember { todayIsoDate() }
     var view by remember { mutableStateOf<TaskView>(TaskView.Today) }
     var openTaskId by remember { mutableStateOf<String?>(null) }
@@ -61,6 +80,21 @@ private fun TaskFlowApp(store: TaskStore) {
         coroutineScope.launch {
             snackbarHostState.showSnackbar("Прикрепление файлов появится в следующем обновлении")
         }
+    }
+
+    val onChangeBackground: () -> Unit = {
+        val destination = backgroundPath
+        val launch = BackgroundPicker.launch
+        if (destination != null && launch != null) {
+            launch(destination) { imported ->
+                if (imported) onBackgroundChanged()
+            }
+        }
+    }
+
+    val onRemoveBackground: () -> Unit = {
+        backgroundPath?.let { deleteBackgroundImage(it) }
+        onBackgroundChanged()
     }
 
     val openTask = store.data.tasks.firstOrNull { it.id == openTaskId }
@@ -90,6 +124,9 @@ private fun TaskFlowApp(store: TaskStore) {
                 view = view,
                 openTask = openTask,
                 snackbarHostState = snackbarHostState,
+                hasBackground = hasBackground,
+                onChangeBackground = onChangeBackground,
+                onRemoveBackground = onRemoveBackground,
                 onSelectView = { view = it },
                 onOpenTask = { openTaskId = it },
                 onNewProject = { showNewProject = true },
@@ -109,7 +146,6 @@ private fun TaskFlowApp(store: TaskStore) {
                     today = today,
                     onSave = { title, notes, dueDate, projectId, important, repeatRule ->
                         store.updateTask(openTask, title, notes, dueDate, projectId, important, repeatRule)
-                        openTaskId = null
                     },
                     onToggleDone = { store.toggleTask(openTask.id) },
                     onDelete = { deleteTaskId = openTask.id },
@@ -179,6 +215,9 @@ private fun DesktopLayout(
     view: TaskView,
     openTask: Task?,
     snackbarHostState: SnackbarHostState,
+    hasBackground: Boolean,
+    onChangeBackground: () -> Unit,
+    onRemoveBackground: () -> Unit,
     onSelectView: (TaskView) -> Unit,
     onOpenTask: (String?) -> Unit,
     onNewProject: () -> Unit,
@@ -190,11 +229,7 @@ private fun DesktopLayout(
     val data = store.data
 
     Box(Modifier.fillMaxSize()) {
-        Row(
-            Modifier
-                .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background),
-        ) {
+        Row(Modifier.fillMaxSize()) {
             Sidebar(
                 modifier = Modifier
                     .width(288.dp)
@@ -202,6 +237,9 @@ private fun DesktopLayout(
                 data = data,
                 view = view,
                 today = today,
+                hasBackground = hasBackground,
+                onChangeBackground = onChangeBackground,
+                onRemoveBackground = onRemoveBackground,
                 onSelect = onSelectView,
                 onNewProject = onNewProject,
             )
@@ -212,7 +250,7 @@ private fun DesktopLayout(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight(),
-                containerColor = MaterialTheme.colorScheme.background,
+                containerColor = Color.Transparent,
                 topBar = {
                     Column {
                         ScreenHeader(title = view.title(data), subtitle = view.subtitle(data, today))
@@ -261,6 +299,7 @@ private fun DesktopLayout(
                             data = data,
                             view = view,
                             today = today,
+                            openTaskId = openTask?.id,
                             onOpen = onOpenTask,
                             onToggle = { store.toggleTask(it) },
                             onToggleImportant = { store.toggleImportant(it) },
@@ -319,7 +358,7 @@ private fun MobileLayout(
     val showBack = view is TaskView.Project
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = Color.Transparent,
         topBar = {
             MobileTopBar(
                 title = view.title(data),
@@ -369,6 +408,7 @@ private fun MobileLayout(
                     data = data,
                     view = view,
                     today = today,
+                    openTaskId = openTask?.id,
                     onOpen = onOpenTask,
                     onToggle = { store.toggleTask(it) },
                     onToggleImportant = { store.toggleImportant(it) },
@@ -402,7 +442,7 @@ private fun MobileTopBar(
     showBack: Boolean,
     onBack: () -> Unit,
 ) {
-    Surface(color = MaterialTheme.colorScheme.surface, shadowElevation = 1.dp) {
+    Surface(color = chromeColor(0.92f), shadowElevation = 1.dp) {
         Row(
             Modifier
                 .fillMaxWidth()
@@ -453,7 +493,7 @@ private fun MobileNavigationBar(view: TaskView, onSelect: (TaskView) -> Unit) {
         else -> BottomDestinations.indexOfFirst { it.view == view }
     }
 
-    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+    NavigationBar(containerColor = chromeColor(0.94f)) {
         BottomDestinations.forEachIndexed { index, destination ->
             NavigationBarItem(
                 selected = index == selectedIndex,

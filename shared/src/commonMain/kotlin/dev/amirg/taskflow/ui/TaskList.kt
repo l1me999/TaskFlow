@@ -2,6 +2,8 @@ package dev.amirg.taskflow.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,15 +20,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,9 +34,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.hoverable
+import dev.amirg.taskflow.model.Project
 import dev.amirg.taskflow.model.RepeatRule
 import dev.amirg.taskflow.model.Task
 import dev.amirg.taskflow.model.TaskFlowData
@@ -50,6 +54,7 @@ fun TaskListContent(
     data: TaskFlowData,
     view: TaskView,
     today: String,
+    openTaskId: String?,
     onOpen: (String) -> Unit,
     onToggle: (String) -> Unit,
     onToggleImportant: (String) -> Unit,
@@ -58,7 +63,9 @@ fun TaskListContent(
     val projectId = (view as? TaskView.Project)?.id
     val active = data.activeTasks(view.scope, today, projectId)
     val completed = data.completedTasks(view.scope, today, projectId)
-    var showCompleted by remember(view) { mutableStateOf(false) }
+    // Completed tasks stay where the user last saw them: the section starts
+    // expanded, not folded away into a "tray" that hides half the history.
+    var showCompleted by remember(view) { mutableStateOf(true) }
 
     if (active.isEmpty() && completed.isEmpty()) {
         EmptyState(view, modifier)
@@ -67,22 +74,18 @@ fun TaskListContent(
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
-        contentPadding = PaddingValues(vertical = 6.dp),
+        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
     ) {
         items(active, key = { it.id }) { task ->
             TaskRow(
                 task = task,
                 project = data.projectOf(task),
                 today = today,
+                selected = task.id == openTaskId,
                 onOpen = { onOpen(task.id) },
                 onToggle = { onToggle(task.id) },
                 onToggleImportant = { onToggleImportant(task.id) },
                 onDelete = { onDelete(task.id) },
-            )
-            HorizontalDivider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f),
-                thickness = 1.dp,
-                modifier = Modifier.padding(start = 64.dp, end = 16.dp),
             )
         }
 
@@ -100,6 +103,7 @@ fun TaskListContent(
                         task = task,
                         project = data.projectOf(task),
                         today = today,
+                        selected = task.id == openTaskId,
                         onOpen = { onOpen(task.id) },
                         onToggle = { onToggle(task.id) },
                         onToggleImportant = { onToggleImportant(task.id) },
@@ -111,38 +115,50 @@ fun TaskListContent(
     }
 }
 
+/** Background of a task row: selected wins over hover, both stay subtle. */
+@Composable
+private fun rowBackground(selected: Boolean, hovered: Boolean): Color = when {
+    selected -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
+    hovered -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f)
+    else -> Color.Transparent
+}
+
 @Composable
 private fun TaskRow(
     task: Task,
-    project: dev.amirg.taskflow.model.Project?,
+    project: Project?,
     today: String,
+    selected: Boolean,
     onOpen: () -> Unit,
     onToggle: () -> Unit,
     onToggleImportant: () -> Unit,
     onDelete: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
     val overdue = task.isOverdue(today)
 
     Row(
         Modifier
             .fillMaxWidth()
+            .padding(vertical = 1.dp)
+            .clip(RoundedCornerShape(10.dp))
+            .background(rowBackground(selected, hovered))
+            .hoverable(interaction)
             .clickable(onClick = onOpen)
-            .heightIn(min = 58.dp)
-            .padding(start = 10.dp, end = 6.dp),
+            .heightIn(min = 60.dp)
+            .padding(start = 6.dp, end = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(
+        TaskCheckbox(
             checked = task.done,
             onCheckedChange = { onToggle() },
-            modifier = Modifier.size(44.dp),
-            colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colorScheme.primary,
-                uncheckedColor = MaterialTheme.colorScheme.outline,
-            ),
+            circleSize = 24.dp,
+            touchSize = 44.dp,
         )
 
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(4.dp))
 
         Column(Modifier.weight(1f)) {
             Text(
@@ -224,7 +240,7 @@ private fun TaskRow(
         }
 
         Box {
-            TextButton(onClick = { menuOpen = true }) {
+            IconButton(onClick = { menuOpen = true }) {
                 TfIcon(
                     icon = TfIcon.More,
                     size = 20.dp,
@@ -266,31 +282,43 @@ private fun TaskRow(
 
 @Composable
 private fun CompletedHeader(count: Int, expanded: Boolean, onToggle: () -> Unit) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onToggle)
-            .heightIn(min = 52.dp)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TfIcon(
-            icon = if (expanded) TfIcon.Expand else TfIcon.Collapse,
-            size = 16.dp,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    val interaction = remember { MutableInteractionSource() }
+    val hovered by interaction.collectIsHoveredAsState()
+
+    Column(Modifier.padding(top = 10.dp)) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
         )
-        Spacer(Modifier.width(8.dp))
-        Text(
-            text = "Выполненные",
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(Modifier.width(6.dp))
-        Text(
-            text = count.toString(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(if (hovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f) else Color.Transparent)
+                .hoverable(interaction)
+                .clickable(onClick = onToggle)
+                .heightIn(min = 48.dp)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            TfIcon(
+                icon = if (expanded) TfIcon.Expand else TfIcon.Collapse,
+                size = 16.dp,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                text = "Выполненные",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = count.toString(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 
